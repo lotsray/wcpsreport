@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>防災演練填報後臺</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, "Noto Sans TC", sans-serif; background:#f5f6f8; padding:20px; }
+    h1 { font-size:26px; }
+    .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:20px; }
+    .card { background:white; padding:18px; border-radius:14px; box-shadow:0 4px 12px #0001; }
+    .num { font-size:28px; font-weight:bold; margin-top:8px; }
+    table { width:100%; border-collapse:collapse; background:white; margin-top:16px; }
+    th, td { border:1px solid #ddd; padding:8px; text-align:center; }
+    th { background:#e5e7eb; }
+    .ok { color:green; font-weight:bold; }
+    .bad { color:red; font-weight:bold; }
+    .none { color:#d97706; font-weight:bold; }
+  </style>
+</head>
+<body>
+  <h1>防災演練填報後臺</h1>
+
+  <div class="cards">
+    <div class="card">總單位<div class="num" id="totalUnits">-</div></div>
+    <div class="card">已填報<div class="num" id="submittedCount">-</div></div>
+    <div class="card">未填報<div class="num" id="unsubmittedCount">-</div></div>
+    <div class="card">異常<div class="num" id="abnormalCount">-</div></div>
+    <div class="card">應到總數<div class="num" id="totalDue">-</div></div>
+    <div class="card">實到總數<div class="num" id="totalActual">-</div></div>
+  </div>
+
+  <h2>尚未填報單位</h2>
+  <div id="unsubmitted"></div>
+
+  <h2>異常單位</h2>
+  <div id="abnormal"></div>
+
+  <h2>完整填報狀態</h2>
+  <div id="allRows"></div>
+
+<script>
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxH-wvPKi-hdQ5DrxnUH8GjAg7HSqS_srN-lgHikQy75_nQujiJ2YUQ1qFDyf3j7Ttu/exec";
+
+function jsonp(params, callback) {
+  const cbName = "cb_" + Date.now();
+
+  window[cbName] = function(data) {
+    callback(data);
+    delete window[cbName];
+    script.remove();
+  };
+
+  const query = new URLSearchParams({
+    ...params,
+    callback: cbName
+  });
+
+  const script = document.createElement("script");
+  script.src = GAS_URL + "?" + query.toString();
+  document.body.appendChild(script);
+}
+
+function loadDashboard() {
+  jsonp({ action: "dashboard" }, res => {
+    if (!res.success) {
+      document.body.innerHTML += `<p>${res.message}</p>`;
+      return;
+    }
+
+    const s = res.summary;
+
+    document.getElementById("totalUnits").textContent = s.totalUnits;
+    document.getElementById("submittedCount").textContent = s.submittedCount;
+    document.getElementById("unsubmittedCount").textContent = s.unsubmittedCount;
+    document.getElementById("abnormalCount").textContent = s.abnormalCount;
+    document.getElementById("totalDue").textContent = s.totalDue;
+    document.getElementById("totalActual").textContent = s.totalActual;
+
+    document.getElementById("unsubmitted").innerHTML = makeTable(res.unsubmitted);
+    document.getElementById("abnormal").innerHTML = makeTable(res.abnormal);
+    document.getElementById("allRows").innerHTML = makeTable(res.rows);
+  });
+}
+
+function makeTable(rows) {
+  if (!rows || rows.length === 0) {
+    return "<p>無資料</p>";
+  }
+
+  return `
+    <table>
+      <thead>
+        <tr>
+          <th>身分類別</th>
+          <th>單位名稱</th>
+          <th>應到</th>
+          <th>實到</th>
+          <th>請假</th>
+          <th>遲到未到</th>
+          <th>在家自學</th>
+          <th>狀態</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(r => `
+          <tr>
+            <td>${r.category}</td>
+            <td>${r.unit}</td>
+            <td>${r.due}</td>
+            <td>${r.actual}</td>
+            <td>${r.leave}</td>
+            <td>${r.late}</td>
+            <td>${r.homeschool}</td>
+            <td class="${r.status === '正常' ? 'ok' : r.status === '異常' ? 'bad' : 'none'}">${r.status}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+loadDashboard();
+setInterval(loadDashboard, 15000);
+</script>
+</body>
+</html>
