@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>防災演練人數填報</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, "Noto Sans TC", sans-serif; background:#f5f6f8; padding:20px; }
+    .card { max-width:520px; margin:auto; background:white; padding:24px; border-radius:16px; box-shadow:0 4px 16px #0001; }
+    h1 { font-size:24px; }
+    label { display:block; margin-top:14px; font-weight:bold; }
+    input, select, textarea, button {
+      width:100%; box-sizing:border-box; padding:12px; margin-top:6px;
+      border:1px solid #ccc; border-radius:8px; font-size:16px;
+    }
+    button { background:#2563eb; color:white; border:0; margin-top:20px; cursor:pointer; }
+    button:hover { background:#1d4ed8; }
+    .msg { margin-top:16px; font-weight:bold; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>防災演練人數填報</h1>
+
+    <label>填報身分</label>
+    <select id="category"></select>
+
+    <label>班級／組別</label>
+    <select id="unit"></select>
+
+    <label>應到人數</label>
+    <input type="number" id="due">
+
+    <label>實際人數</label>
+    <input type="number" id="actual">
+
+    <label>請假</label>
+    <input type="number" id="leave" value="0">
+
+    <label>遲到／未到</label>
+    <input type="number" id="late" value="0">
+
+    <label>在家自學</label>
+    <input type="number" id="homeschool" value="0">
+
+    <label>填報者</label>
+    <input type="text" id="reporter" placeholder="請輸入姓名">
+
+    <label>備註</label>
+    <textarea id="note" rows="3" placeholder="可填寫座號或特殊狀況"></textarea>
+
+    <button onclick="submitForm()">送出填報</button>
+
+    <div class="msg" id="msg"></div>
+  </div>
+
+<script>
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxH-wvPKi-hdQ5DrxnUH8GjAg7HSqS_srN-lgHikQy75_nQujiJ2YUQ1qFDyf3j7Ttu/exec";
+
+let unitData = [];
+
+function jsonp(params, callback) {
+  const cbName = "cb_" + Date.now();
+
+  window[cbName] = function(data) {
+    callback(data);
+    delete window[cbName];
+    script.remove();
+  };
+
+  const query = new URLSearchParams({
+    ...params,
+    callback: cbName
+  });
+
+  const script = document.createElement("script");
+  script.src = GAS_URL + "?" + query.toString();
+  document.body.appendChild(script);
+}
+
+function loadUnits() {
+  jsonp({ action: "getUnits" }, res => {
+    if (!res.success) {
+      document.getElementById("msg").textContent = res.message;
+      return;
+    }
+
+    unitData = res.data;
+
+    const categories = [...new Set(unitData.map(x => x.category))];
+    const categorySelect = document.getElementById("category");
+
+    categorySelect.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join("");
+    categorySelect.addEventListener("change", updateUnits);
+
+    updateUnits();
+  });
+}
+
+function updateUnits() {
+  const category = document.getElementById("category").value;
+  const units = unitData.filter(x => x.category === category);
+  const unitSelect = document.getElementById("unit");
+
+  unitSelect.innerHTML = units.map(u =>
+    `<option value="${u.unit}" data-code="${u.code}">${u.unit}</option>`
+  ).join("");
+}
+
+function submitForm() {
+  const unitSelect = document.getElementById("unit");
+  const selected = unitSelect.options[unitSelect.selectedIndex];
+
+  const params = {
+    action: "submit",
+    category: document.getElementById("category").value,
+    unit: unitSelect.value,
+    code: selected.dataset.code || "",
+    due: document.getElementById("due").value,
+    actual: document.getElementById("actual").value,
+    leave: document.getElementById("leave").value,
+    late: document.getElementById("late").value,
+    homeschool: document.getElementById("homeschool").value,
+    reporter: document.getElementById("reporter").value,
+    note: document.getElementById("note").value
+  };
+
+  document.getElementById("msg").textContent = "送出中...";
+
+  jsonp(params, res => {
+    document.getElementById("msg").textContent =
+      res.success ? `✅ ${res.message}：${res.result}` : `❌ ${res.message}`;
+  });
+}
+
+loadUnits();
+</script>
+</body>
+</html>
