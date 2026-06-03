@@ -5,17 +5,16 @@
   <title>防災演練人數填報</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: Arial, "Noto Sans TC", sans-serif; background:#f5f6f8; padding:20px; }
-    .card { max-width:520px; margin:auto; background:white; padding:24px; border-radius:16px; box-shadow:0 4px 16px #0001; }
-    h1 { font-size:24px; }
-    label { display:block; margin-top:14px; font-weight:bold; }
-    input, select, textarea, button {
-      width:100%; box-sizing:border-box; padding:12px; margin-top:6px;
-      border:1px solid #ccc; border-radius:8px; font-size:16px;
-    }
-    button { background:#2563eb; color:white; border:0; margin-top:20px; cursor:pointer; }
-    button:hover { background:#1d4ed8; }
-    .msg { margin-top:16px; font-weight:bold; }
+    body{font-family:Arial,"Noto Sans TC",sans-serif;background:#f5f6f8;padding:20px}
+    .card{max-width:520px;margin:auto;background:white;padding:24px;border-radius:16px;box-shadow:0 4px 16px #0001}
+    h1{font-size:24px}
+    label{display:block;margin-top:14px;font-weight:bold}
+    input,select,textarea,button{width:100%;box-sizing:border-box;padding:12px;margin-top:6px;border:1px solid #ccc;border-radius:8px;font-size:16px}
+    button{background:#2563eb;color:white;border:0;margin-top:20px;cursor:pointer;font-weight:bold}
+    button:hover{background:#1d4ed8}
+    .msg{margin-top:16px;font-weight:bold}
+    .dashboard-btn{position:fixed;right:20px;bottom:20px;background:#dc2626;color:#fff;text-decoration:none;padding:12px 18px;border-radius:999px;font-weight:bold;box-shadow:0 4px 12px rgba(0,0,0,.25);z-index:9999}
+    .dashboard-btn:hover{background:#b91c1c}
   </style>
 </head>
 <body>
@@ -50,86 +49,65 @@
     <textarea id="note" rows="3" placeholder="可填寫座號或特殊狀況"></textarea>
 
     <button onclick="submitForm()">送出填報</button>
-
     <div class="msg" id="msg"></div>
   </div>
 
+  <a href="https://lotsray.github.io/wcpsreport/dashboard.html" target="_blank" class="dashboard-btn">🚨 戰情中心</a>
+
 <script>
 const GAS_URL = "https://script.google.com/macros/s/AKfycbyWl2PmvuciIfuRVPoEKGYIoMF8CpfaWBUVIM5TV_3LTWGSzeASwsUNtjMTUipyFL5f/exec";
-
 let unitData = [];
 
-function jsonp(params, callback) {
+function jsonp(params, callback){
   const cbName = "cb_" + Date.now();
-
-  window[cbName] = function(data) {
+  const script = document.createElement("script");
+  window[cbName] = function(data){
     callback(data);
     delete window[cbName];
     script.remove();
   };
-
-  const query = new URLSearchParams({
-    ...params,
-    callback: cbName
-  });
-
-  const script = document.createElement("script");
+  const query = new URLSearchParams({...params, callback: cbName});
   script.src = GAS_URL + "?" + query.toString();
   document.body.appendChild(script);
 }
 
-function loadUnits() {
-  jsonp({ action: "getUnits" }, res => {
-    if (!res.success) {
-      document.getElementById("msg").textContent = res.message;
+function loadUnits(){
+  jsonp({action:"getUnits"}, res=>{
+    if(!res.success){
+      msg.textContent = res.message;
       return;
     }
-
     unitData = res.data;
-
-    const categories = [...new Set(unitData.map(x => x.category))];
-    const categorySelect = document.getElementById("category");
-
-    categorySelect.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join("");
-    categorySelect.addEventListener("change", updateUnits);
-
+    const categories = [...new Set(unitData.map(x=>x.category))];
+    category.innerHTML = categories.map(c=>`<option value="${c}">${c}</option>`).join("");
+    category.addEventListener("change", updateUnits);
     updateUnits();
   });
 }
 
-function updateUnits() {
-  const category = document.getElementById("category").value;
-  const units = unitData.filter(x => x.category === category);
-  const unitSelect = document.getElementById("unit");
-
-  unitSelect.innerHTML = units.map(u =>
-    `<option value="${u.unit}" data-code="${u.code}">${u.unit}</option>`
-  ).join("");
+function updateUnits(){
+  const units = unitData.filter(x=>x.category === category.value);
+  unit.innerHTML = units.map(u=>`<option value="${u.unit}" data-code="${u.code}">${u.unit}</option>`).join("");
 }
 
-function submitForm() {
-  const unitSelect = document.getElementById("unit");
-  const selected = unitSelect.options[unitSelect.selectedIndex];
+function submitForm(){
+  const selected = unit.options[unit.selectedIndex];
+  msg.textContent = "送出中...";
 
-  const params = {
-    action: "submit",
-    category: document.getElementById("category").value,
-    unit: unitSelect.value,
-    code: selected.dataset.code || "",
-    due: document.getElementById("due").value,
-    actual: document.getElementById("actual").value,
-    leave: document.getElementById("leave").value,
-    late: document.getElementById("late").value,
-    homeschool: document.getElementById("homeschool").value,
-    reporter: document.getElementById("reporter").value,
-    note: document.getElementById("note").value
-  };
-
-  document.getElementById("msg").textContent = "送出中...";
-
-  jsonp(params, res => {
-    document.getElementById("msg").textContent =
-      res.success ? `✅ ${res.message}：${res.result}` : `❌ ${res.message}`;
+  jsonp({
+    action:"submit",
+    category:category.value,
+    unit:unit.value,
+    code:selected.dataset.code || "",
+    due:due.value,
+    actual:actual.value,
+    leave:leave.value,
+    late:late.value,
+    homeschool:homeschool.value,
+    reporter:reporter.value,
+    note:note.value
+  }, res=>{
+    msg.textContent = res.success ? `✅ ${res.message}：${res.result}` : `❌ ${res.message}`;
   });
 }
 
