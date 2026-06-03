@@ -2,126 +2,151 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <title>防災演練填報後臺</title>
+  <title>五常國小防災演練戰情中心</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: Arial, "Noto Sans TC", sans-serif; background:#f5f6f8; padding:20px; }
-    h1 { font-size:26px; }
-    .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:20px; }
-    .card { background:white; padding:18px; border-radius:14px; box-shadow:0 4px 12px #0001; }
-    .num { font-size:28px; font-weight:bold; margin-top:8px; }
-    table { width:100%; border-collapse:collapse; background:white; margin-top:16px; }
-    th, td { border:1px solid #ddd; padding:8px; text-align:center; }
-    th { background:#e5e7eb; }
-    .ok { color:green; font-weight:bold; }
-    .bad { color:red; font-weight:bold; }
-    .none { color:#d97706; font-weight:bold; }
+    body{font-family:Arial,"Noto Sans TC",sans-serif;background:#111827;color:#f9fafb;padding:24px}
+    h1{font-size:34px;margin-bottom:8px}
+    .top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+    .actions a,.actions button{background:#2563eb;color:white;text-decoration:none;border:0;border-radius:10px;padding:10px 14px;font-weight:bold;cursor:pointer}
+    .actions button{background:#16a34a}
+    .progress-wrap{background:#374151;border-radius:999px;height:34px;overflow:hidden;margin:18px 0}
+    .progress-bar{height:100%;background:#22c55e;width:0%;transition:.5s}
+    .progress-text{font-size:28px;font-weight:bold}
+    .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin:20px 0}
+    .card{background:#1f2937;padding:18px;border-radius:16px}
+    .card .label{color:#cbd5e1}
+    .card .num{font-size:36px;font-weight:bold;margin-top:8px}
+    .section{background:#1f2937;border-radius:16px;padding:18px;margin-top:18px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+    .unit{padding:12px;border-radius:10px;font-weight:bold}
+    .red{background:#7f1d1d;color:#fecaca}
+    .yellow{background:#713f12;color:#fde68a}
+    .green{background:#14532d;color:#bbf7d0}
+    table{width:100%;border-collapse:collapse;background:white;color:#111827;margin-top:12px}
+    th,td{border:1px solid #ddd;padding:8px;text-align:center}
+    th{background:#e5e7eb}
+    .float-btn{position:fixed;right:20px;bottom:20px;background:#2563eb;color:white;text-decoration:none;padding:12px 18px;border-radius:999px;font-weight:bold;box-shadow:0 4px 12px rgba(0,0,0,.35)}
   </style>
 </head>
 <body>
-  <h1>防災演練填報後臺</h1>
-
-  <div class="cards">
-    <div class="card">總單位<div class="num" id="totalUnits">-</div></div>
-    <div class="card">已填報<div class="num" id="submittedCount">-</div></div>
-    <div class="card">未填報<div class="num" id="unsubmittedCount">-</div></div>
-    <div class="card">異常<div class="num" id="abnormalCount">-</div></div>
-    <div class="card">應到總數<div class="num" id="totalDue">-</div></div>
-    <div class="card">實到總數<div class="num" id="totalActual">-</div></div>
+  <div class="top">
+    <div>
+      <h1>🚨 五常國小防災演練即時戰情中心</h1>
+      <div id="updateTime">資料載入中...</div>
+    </div>
+    <div class="actions">
+      <button onclick="loadDashboard()">🔄 更新資料</button>
+      <a href="https://lotsray.github.io/wcpsreport/" target="_blank">📝 填報頁</a>
+    </div>
   </div>
 
-  <h2>尚未填報單位</h2>
-  <div id="unsubmitted"></div>
+  <div class="progress-text" id="progressText">填報進度：- / -（-%）</div>
+  <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
 
-  <h2>異常單位</h2>
-  <div id="abnormal"></div>
+  <div class="cards">
+    <div class="card"><div class="label">總單位</div><div class="num" id="totalUnits">-</div></div>
+    <div class="card"><div class="label">已填報</div><div class="num" id="submittedCount">-</div></div>
+    <div class="card"><div class="label">未填報</div><div class="num" id="unsubmittedCount">-</div></div>
+    <div class="card"><div class="label">異常</div><div class="num" id="abnormalCount">-</div></div>
+    <div class="card"><div class="label">應到總數</div><div class="num" id="totalDue">-</div></div>
+    <div class="card"><div class="label">實到總數</div><div class="num" id="totalActual">-</div></div>
+  </div>
 
-  <h2>完整填報狀態</h2>
-  <div id="allRows"></div>
+  <div class="section">
+    <h2>🔴 尚未填報單位</h2>
+    <div class="grid" id="unsubmitted"></div>
+  </div>
+
+  <div class="section">
+    <h2>🟡 人數檢核異常</h2>
+    <div class="grid" id="abnormal"></div>
+  </div>
+
+  <div class="section">
+    <h2>🟢 已完成單位</h2>
+    <div class="grid" id="completed"></div>
+  </div>
+
+  <div class="section">
+    <h2>完整填報狀態</h2>
+    <div id="allRows"></div>
+  </div>
+
+  <a href="https://lotsray.github.io/wcpsreport/" class="float-btn">📝 回填報頁</a>
 
 <script>
 const GAS_URL = "https://script.google.com/macros/s/AKfycbyWl2PmvuciIfuRVPoEKGYIoMF8CpfaWBUVIM5TV_3LTWGSzeASwsUNtjMTUipyFL5f/exec";
 
-function jsonp(params, callback) {
+function jsonp(params, callback){
   const cbName = "cb_" + Date.now();
-
-  window[cbName] = function(data) {
+  const script = document.createElement("script");
+  window[cbName] = function(data){
     callback(data);
     delete window[cbName];
     script.remove();
   };
-
-  const query = new URLSearchParams({
-    ...params,
-    callback: cbName
-  });
-
-  const script = document.createElement("script");
+  const query = new URLSearchParams({...params, callback: cbName});
   script.src = GAS_URL + "?" + query.toString();
   document.body.appendChild(script);
 }
 
-function loadDashboard() {
-  jsonp({ action: "dashboard" }, res => {
-    if (!res.success) {
+function loadDashboard(){
+  jsonp({action:"dashboard"}, res=>{
+    if(!res.success){
       document.body.innerHTML += `<p>${res.message}</p>`;
       return;
     }
 
     const s = res.summary;
+    const percent = s.totalUnits ? Math.round(s.submittedCount / s.totalUnits * 100) : 0;
 
-    document.getElementById("totalUnits").textContent = s.totalUnits;
-    document.getElementById("submittedCount").textContent = s.submittedCount;
-    document.getElementById("unsubmittedCount").textContent = s.unsubmittedCount;
-    document.getElementById("abnormalCount").textContent = s.abnormalCount;
-    document.getElementById("totalDue").textContent = s.totalDue;
-    document.getElementById("totalActual").textContent = s.totalActual;
+    totalUnits.textContent = s.totalUnits;
+    submittedCount.textContent = s.submittedCount;
+    unsubmittedCount.textContent = s.unsubmittedCount;
+    abnormalCount.textContent = s.abnormalCount;
+    totalDue.textContent = s.totalDue;
+    totalActual.textContent = s.totalActual;
 
-    document.getElementById("unsubmitted").innerHTML = makeTable(res.unsubmitted);
-    document.getElementById("abnormal").innerHTML = makeTable(res.abnormal);
-    document.getElementById("allRows").innerHTML = makeTable(res.rows);
+    progressText.textContent = `填報進度：${s.submittedCount} / ${s.totalUnits}（${percent}%）`;
+    progressBar.style.width = percent + "%";
+    updateTime.textContent = "最後更新：" + new Date().toLocaleString("zh-TW");
+
+    unsubmitted.innerHTML = makeUnits(res.unsubmitted, "red");
+    abnormal.innerHTML = makeUnits(res.abnormal, "yellow");
+    completed.innerHTML = makeUnits(res.rows.filter(r=>r.status==="正常"), "green");
+    allRows.innerHTML = makeTable(res.rows);
   });
 }
 
-function makeTable(rows) {
-  if (!rows || rows.length === 0) {
-    return "<p>無資料</p>";
-  }
+function makeUnits(rows, color){
+  if(!rows || rows.length===0) return "<p>無資料</p>";
+  return rows.map(r=>`<div class="unit ${color}">${r.category}<br>${r.unit}</div>`).join("");
+}
 
+function makeTable(rows){
+  if(!rows || rows.length===0) return "<p>無資料</p>";
   return `
     <table>
       <thead>
         <tr>
-          <th>身分類別</th>
-          <th>單位名稱</th>
-          <th>應到</th>
-          <th>實到</th>
-          <th>請假</th>
-          <th>遲到未到</th>
-          <th>在家自學</th>
-          <th>狀態</th>
+          <th>身分類別</th><th>單位名稱</th><th>應到</th><th>實到</th>
+          <th>請假</th><th>遲到未到</th><th>在家自學</th><th>狀態</th>
         </tr>
       </thead>
       <tbody>
-        ${rows.map(r => `
+        ${rows.map(r=>`
           <tr>
-            <td>${r.category}</td>
-            <td>${r.unit}</td>
-            <td>${r.due}</td>
-            <td>${r.actual}</td>
-            <td>${r.leave}</td>
-            <td>${r.late}</td>
-            <td>${r.homeschool}</td>
-            <td class="${r.status === '正常' ? 'ok' : r.status === '異常' ? 'bad' : 'none'}">${r.status}</td>
+            <td>${r.category}</td><td>${r.unit}</td><td>${r.due}</td><td>${r.actual}</td>
+            <td>${r.leave}</td><td>${r.late}</td><td>${r.homeschool}</td><td>${r.status}</td>
           </tr>
         `).join("")}
       </tbody>
-    </table>
-  `;
+    </table>`;
 }
 
 loadDashboard();
-setInterval(loadDashboard, 15000);
+setInterval(loadDashboard,15000);
 </script>
 </body>
 </html>
